@@ -1,8 +1,6 @@
-import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { concatWith, delay, first, map, Observable, of, scan, startWith, Subject, switchMap, take, tap } from 'rxjs';
 
-interface Commit {
+export interface Commit {
   authorName: string;
   authorEmail: string;
   message: string;
@@ -10,38 +8,24 @@ interface Commit {
 }
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class AsyncGenService {
   public readonly repo = 'You-Dont-Know-JS';
-  private commitsSync = new Subject<void>;
-  public readonly commits$: Observable<Commit[]>;
   private nextCommitsUrl: string | null = `https://api.github.com/repos/stepan20000/${this.repo}/commits`;
 
-  constructor(private http: HttpClient) {
-    this.commits$ = this.commitsSync.pipe(
-      delay(5000),
-      take(2),
-      switchMap(() => this.createCommitsStream()),
-      startWith([] as Commit[]),
-      scan<Commit[]>((acc: Commit[], commits: Commit[]) => acc.concat(commits)),
-      tap(console.log),
-    )
-  }
 
-  public getCommits(): void {
-    this.commitsSync.next();
-  }
-
-  private createCommitsStream(): Observable<Commit[]> {
-    const headers  = new HttpHeaders().set('Authorization', 'token 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')
-    return this.nextCommitsUrl
-      ? this.http.get(this.nextCommitsUrl as string, { observe: 'response', headers }).pipe(
-          tap(res => this.nextCommitsUrl = res.headers.get('link')?.split(';')[0].slice(1, -1) || null),
-          map(({ body }) => (body as any).map((commit: any) => this.createCommit(commit))),
-          tap(() => this.commitsSync.next()),
-        )
-      : of([]);
+  public async *getCommits(): AsyncGenerator<Commit[]> {
+    let counter = 2;
+    while(this.nextCommitsUrl && counter) {
+      await pause(5000);
+      const response = await this.getNextCommitsResponse();
+      const body = await response.json();
+      const commits = body.map((val: any) => this.createCommit(val));
+      counter--;
+      this.nextCommitsUrl = this.getNextCommitsLinkFromResponse(response);
+      yield commits;
+    }
   }
 
   private createCommit(rawCommit: any): Commit {
@@ -52,4 +36,21 @@ export class AsyncGenService {
       sha: rawCommit.sha,
     }
   }
+
+  private getNextCommitsResponse(): Promise<Response> {
+    return fetch(
+      this.nextCommitsUrl as string, 
+      {
+        headers: { Authorization: 'token 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' }
+      },
+    );
+  }
+
+  private getNextCommitsLinkFromResponse(response: Response): string | null {
+    return response.headers.get('link')?.split(';')[0].slice(1, -1) || null;
+  }
+}
+
+function pause(delay = 100) {
+  return new Promise(resolve => setTimeout(resolve, delay))
 }

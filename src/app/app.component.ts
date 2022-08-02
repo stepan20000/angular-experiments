@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { AsyncGenService } from './async-gen.service';
+import { AsyncGenService, Commit } from './async-gen.service';
 
 @Component({
   selector: 'app-root',
@@ -9,11 +9,13 @@ import { AsyncGenService } from './async-gen.service';
 export class AppComponent {
   public title = 'angular-experiments';
   public readonly repo = this.asyncGenService.repo;
-  public commits$ = this.asyncGenService.commits$;
+  public commits: Commit[] = [];
 
   constructor(private asyncGenService: AsyncGenService) {}
 
-  public onGetNewCommits(): void {
-    this.asyncGenService.getCommits();
-  }
+  public async getCommits(): Promise<void> {
+    for await (const commits of this.asyncGenService.getCommits()) {
+      this.commits = this.commits.concat(commits);
+    }
+  } 
 }

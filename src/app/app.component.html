@@ -1,7 +1,7 @@
 
 <h1>{{repo}}</h1>
 <button
-  (click)="onGetNewCommits()"
+  (click)="getCommits()"
 >Get new commits</button>
 <table>
   <thead>
@@ -13,7 +13,7 @@
     </tr>
   </thead>
   <tbody>
-    <ng-container *ngFor="let commit of commits$ | async">
+    <ng-container *ngFor="let commit of commits">
       <tr>
         <td>{{commit.authorName}}</td>
         <td>{{commit.authorEmail}}</td>

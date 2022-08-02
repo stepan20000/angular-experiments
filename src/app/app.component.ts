@@ -1,4 +1,5 @@
 import { Component } from '@angular/core';
+import { AsyncGenService } from './async-gen.service';
 
 @Component({
   selector: 'app-root',
@@ -6,5 +7,13 @@ import { Component } from '@angular/core';
   styleUrls: ['./app.component.css']
 })
 export class AppComponent {
-  title = 'angular-experiments';
+  public title = 'angular-experiments';
+  public readonly repo = this.asyncGenService.repo;
+  public commits$ = this.asyncGenService.commits$;
+
+  constructor(private asyncGenService: AsyncGenService) {}
+
+  public onGetNewCommits(): void {
+    this.asyncGenService.getCommits();
+  }
 }
